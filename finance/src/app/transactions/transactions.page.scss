@@ -72,3 +72,67 @@
     overflow: hidden;
     flex-wrap: wrap;
 }
+
+.transaction-table {
+    width: 100%;
+    min-width: 720px;
+    border-collapse: collapse;
+}
+
+.transaction-list {
+    width: 100%;
+    overflow-x: auto;
+}
+
+.transaction-list p {
+    text-align: center;
+}
+
+.transaction-table th,
+.transaction-table td {
+    padding: 12px 8px;
+    text-align: center;
+    vertical-align: middle;
+}
+
+.transaction-table th {
+    font-weight: 600;
+    white-space: nowrap;
+}
+
+.transaction-table tbody tr {
+    border-bottom: 1px solid var(--ion-color-light, #e5e7eb);
+}
+
+.transaction-table tbody tr:last-child {
+    border-bottom: 0;
+}
+
+.transaction-table .notes-cell {
+    min-width: 180px;
+    max-width: 280px;
+    white-space: normal;
+    overflow-wrap: anywhere;
+    color: var(--ion-color-medium, #6b7280);
+    line-height: 1.4;
+}
+
+.transaction-table .notes-cell span {
+    display: block;
+    max-height: 4.2em;
+    overflow: hidden;
+}
+
+.transaction-table .action-cell {
+    white-space: nowrap;
+}
+
+.transaction-table .action-cell ion-button {
+    margin: 0 2px;
+    --padding-start: 8px;
+    --padding-end: 8px;
+}
+
+.transaction-table .action-cell ion-icon {
+    font-size: 18px;
+}

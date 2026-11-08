@@ -1,4 +1,4 @@
-import { Component, OnInit } from '@angular/core';
+import { ChangeDetectorRef, Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import {
   IonCard,
@@ -17,6 +17,15 @@ import {
 import { RouterLink } from '@angular/router';
 import { addIcons } from 'ionicons';
 import { pieChartOutline, trendingDownOutline, trendingUpOutline, walletOutline } from 'ionicons/icons';
+
+interface DashboardBudget {
+  category_id: number | string;
+  budget_name: string;
+  budget_amount: number | string;
+  start_date: string;
+  end_date: string;
+  created_at: string;
+}
 
 @Component({
   selector: 'app-dashboard',
@@ -57,7 +66,9 @@ export class DashboardPage implements OnInit {
   // Database tables
   accounts: any[] = [];
   bills: any[] = [];
-  budgets: any[] = [];
+  budgets: DashboardBudget[] = [];
+  budgetLoading = false;
+  budgetLoadError = '';
   categories: any[] = [];
   goalContributions: any[] = [];
   notifications: any[] = [];
@@ -80,7 +91,7 @@ export class DashboardPage implements OnInit {
       .slice(0, 3);
   }
 
-  get thisMonthBudgets(): any[] {
+  get activeMonthBudgets(): DashboardBudget[] {
     return this.budgets
       .filter(
         (budget) =>
@@ -90,13 +101,26 @@ export class DashboardPage implements OnInit {
       .slice(0, 3);
   }
 
+  get dashboardBudgets(): DashboardBudget[] {
+    if (this.activeMonthBudgets.length > 0) {
+      return this.activeMonthBudgets;
+    }
+
+    return [...this.budgets]
+      .sort((first, second) => String(second.created_at).localeCompare(String(first.created_at)))
+      .slice(0, 3);
+  }
+
+  get budgetCardTitle(): string {
+    return this.activeMonthBudgets.length > 0 ? "This Month's Budgets" : 'Recent Budgets';
+  }
+
   getBudgetSpent(budget: any): number {
     return this.transactions
       .filter(
         (transaction) =>
           transaction.transaction_type === 'Expense' &&
           Number(transaction.category_id) === Number(budget.category_id) &&
-          String(transaction.transaction_date).slice(0, 7) === this.currentMonthKey &&
           transaction.transaction_date >= budget.start_date &&
           transaction.transaction_date <= budget.end_date,
       )
@@ -119,7 +143,7 @@ export class DashboardPage implements OnInit {
     return targetAmount > 0 ? Math.min(this.getGoalSavedAmount(goal) / targetAmount, 1) : 0;
   }
 
-  constructor() {
+  constructor(private readonly changeDetector: ChangeDetectorRef) {
     addIcons({
       pieChartOutline,
       trendingDownOutline,
@@ -189,31 +213,6 @@ export class DashboardPage implements OnInit {
     this.totalExpenses = (resources?.transactions ?? [])
       .filter((transaction: { transaction_type: string }) => transaction.transaction_type === 'Expense')
       .reduce((total: number, transaction: { amount: number | string }) => total + Number(transaction.amount ?? 0), 0);
-    this.totalRemainingBudget = (resources?.budgets ?? []).reduce(
-      (
-        budgetTotal: number,
-        budget: {
-          budget_amount: number | string;
-          category_id: number | string;
-          start_date: string;
-          end_date: string;
-        },
-      ) => {
-        const spent = (resources?.transactions ?? [])
-          .filter(
-            (transaction: { transaction_type: string; category_id: number | string; transaction_date: string }) =>
-              transaction.transaction_type === 'Expense' &&
-              Number(transaction.category_id) === Number(budget.category_id) &&
-              transaction.transaction_date >= budget.start_date &&
-              transaction.transaction_date <= budget.end_date,
-          )
-          .reduce((sum: number, transaction: { amount: number | string }) => sum + Number(transaction.amount ?? 0), 0);
-
-        return budgetTotal + Number(budget.budget_amount) - spent;
-      },
-      0,
-    );
-
     // Database tables
     this.accounts = resources?.accounts ?? [];
     this.bills = resources?.bills ?? [];
@@ -224,7 +223,48 @@ export class DashboardPage implements OnInit {
     this.recurringTransactions = resources?.recurringTransactions ?? [];
     this.savingsGoals = resources?.savings_goals ?? [];
     this.transactions = resources?.transactions ?? [];
+    this.updateTotalRemainingBudget();
 
-    console.log(this.totalBalance);
+    if (this.user?.user_id) {
+      void this.loadBudgets(this.user.user_id);
+    }
+  }
+
+  async loadBudgets(userId: number | string): Promise<void> {
+    this.budgetLoading = true;
+    this.budgetLoadError = '';
+
+    try {
+      const response = await fetch(`http://127.0.0.1:8000/budget/${encodeURIComponent(userId)}`);
+      if (!response.ok) {
+        throw new Error(`Request failed: ${response.status}`);
+      }
+
+      this.budgets = await response.json();
+      this.updateTotalRemainingBudget();
+    } catch (error) {
+      this.budgetLoadError =
+        error instanceof Error ? error.message : 'Could not load dashboard budgets.';
+      console.error('Failed to load dashboard budgets:', error);
+    } finally {
+      this.budgetLoading = false;
+      this.changeDetector.detectChanges();
+    }
+  }
+
+  private updateTotalRemainingBudget(): void {
+    this.totalRemainingBudget = this.activeMonthBudgets.reduce((budgetTotal, budget) => {
+      const spent = this.transactions
+        .filter(
+          (transaction) =>
+            transaction.transaction_type === 'Expense' &&
+            Number(transaction.category_id) === Number(budget.category_id) &&
+            transaction.transaction_date >= budget.start_date &&
+            transaction.transaction_date <= budget.end_date,
+        )
+        .reduce((sum, transaction) => sum + Number(transaction.amount ?? 0), 0);
+
+      return budgetTotal + Number(budget.budget_amount) - spent;
+    }, 0);
   }
 }

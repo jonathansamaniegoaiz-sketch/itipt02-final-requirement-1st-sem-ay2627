@@ -8,11 +8,46 @@
       <ion-card-content>
         <div class="transaction-header">
           <div class="search">
-            <ion-searchbar></ion-searchbar>
+            <ion-searchbar
+              [(ngModel)]="searchTerm"
+              (ionInput)="searchTransactions()"
+              debounce="300"
+              placeholder="Search transactions"
+              show-clear-button="focus"
+            ></ion-searchbar>
+          </div>
+          <div class="btn-group">
+            <ion-button
+              id="allBtn"
+              class="filter btn"
+              [class.active]="activeFilter === 'allBtn'"
+              (click)="filterTransactions('allBtn')"
+              >ALL</ion-button
+            >
+            <ion-button
+              id="incomebtn"
+              class="filter btn"
+              [class.active]="activeFilter === 'incomebtn'"
+              (click)="filterTransactions('incomebtn')"
+              >INCOME</ion-button
+            >
+            <ion-button
+              id="expenseBtn"
+              class="filter btn"
+              [class.active]="activeFilter === 'expenseBtn'"
+              (click)="filterTransactions('expenseBtn')"
+              >EXPENSE</ion-button
+            >
           </div>
           <div class="order-control">
             <ion-icon name="swap-vertical" aria-hidden="true"></ion-icon>
-            <ion-select aria-label="Order transactions" interface="popover" value="new">
+            <ion-select
+              aria-label="Order transactions"
+              interface="popover"
+              [value]="transaction_type"
+              id="order-select"
+              (ionChange)="orderTransactions($event.detail.value)"
+            >
               <ion-select-option value="new">Newest</ion-select-option>
               <ion-select-option value="old">Oldest</ion-select-option>
               <ion-select-option value="A-Z">A-Z</ion-select-option>
@@ -22,31 +57,84 @@
             </ion-select>
           </div>
         </div>
-        <div class="transaction-list">
-          <h1>no transaction</h1>
-        </div>
-      </ion-card-content>
-    </ion-card>
-    <ion-card class="filter-options">
-      <ion-card-header>
-        <ion-card-title>Filter Options</ion-card-title>
-      </ion-card-header>
-      <ion-card-content>
-        <div class="filter-container">
-          <ion-list>
-            <ion-list-header>TYPE</ion-list-header>
-            <ion-item>
-              <div class="btn-group">
-                <ion-button class="filter btn active" id="all-btn">ALL</ion-button>
-                <ion-button class="filter btn" id="income">INCOME</ion-button>
-                <ion-button class="filter btn" id="expense">EXPENSE</ion-button>
+        @if (transactionTypeTotals.length > 0) {
+        <section class="transaction-type-summary" aria-label="Transaction totals by type">
+          <div class="type-summary-heading">
+            <div>
+              <p class="type-summary-kicker">TRANSACTION OVERVIEW</p>
+              <h2>Totals</h2>
+            </div>
+            <div class="type-summary-total">
+              <span>Total amount</span>
+              <strong>₱{{ totalTransactionAmount | number:'1.2-2' }}</strong>
+            </div>
+          </div>
+          <div class="type-summary-content">
+            <div class="type-chart-container">
+              <canvas #transactionTypeChart role="img" aria-label="Pie chart of transaction totals by type"></canvas>
+            </div>
+            <div class="type-total-rows" aria-label="Transaction type totals">
+              @for (item of transactionTypeTotals; track item.type; let index = $index) {
+              <div class="type-total-row">
+                <span
+                  class="type-color"
+                  [style.--type-color]="getTransactionTypeColor(index)"
+                  aria-hidden="true"
+                ></span>
+                <div class="type-row-label">
+                  <strong>{{ item.type }}</strong>
+                  <small>{{ item.count }} transaction{{ item.count === 1 ? '' : 's' }}</small>
+                </div>
+                <strong class="type-row-amount">₱{{ item.amount | number:'1.2-2' }}</strong>
               </div>
-            </ion-item>
-            <ion-list-header>DATE</ion-list-header>
-            <ion-item>
-              <ion-input type="month"></ion-input>
-            </ion-item>
-          </ion-list>
+              }
+            </div>
+          </div>
+        </section>
+        }
+
+        <div class="transaction-list">
+          @if (isLoading) {
+          <p>Loading transactions...</p>
+          } @else if (loadError) {
+          <p>{{ loadError }}</p>
+          } @else if (transaction.length > 0) {
+          <table class="transaction-table">
+            <thead>
+              <tr>
+                <th>Description</th>
+                <th>Type</th>
+                <th>Amount</th>
+                <th>Date</th>
+                <th>Notes</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              @for (item of transaction; track $index) {
+              <tr>
+                <td>{{ item.description }}</td>
+                <td>{{ item.transaction_type }}</td>
+                <td>{{ item.amount }}</td>
+                <td>{{ item.transaction_date }}</td>
+                <td class="notes-cell">
+                  <span [title]="item.notes || 'No notes added'">{{ item.notes || 'No notes' }}</span>
+                </td>
+                <td class="action-cell">
+                  <ion-button fill="clear" size="small" aria-label="Edit transaction" title="Edit transaction">
+                    <ion-icon name="create-outline" aria-hidden="true"></ion-icon>
+                  </ion-button>
+                  <ion-button fill="clear" size="small" aria-label="Archive transaction" title="Archive transaction">
+                    <ion-icon name="archive-outline" aria-hidden="true"></ion-icon>
+                  </ion-button>
+                </td>
+              </tr>
+              }
+            </tbody>
+          </table>
+          } @else {
+          <p>No transactions found.</p>
+          }
         </div>
       </ion-card-content>
     </ion-card>

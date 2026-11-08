@@ -1,7 +1,7 @@
 from datetime import date
 from decimal import Decimal
 
-from fastapi import FastAPI, HTTPException, status
+from fastapi import FastAPI, HTTPException, Query, status, Response
 from pydantic import BaseModel, Field
 from fastapi.middleware.cors import CORSMiddleware
 import hmac
@@ -128,6 +128,112 @@ def createBudget(budget: BudgetCreate):
                 detail="Budget was saved but could not be loaded.",
             )
         return created_budget
+    finally:
+        cursor.close()
+        conn.close()
+
+
+@app.put("/budgets/{user_id}/{budget_id}")
+def updateBudget(user_id: int, budget_id: int, budget: BudgetCreate):
+    if budget.user_id != user_id:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail="Budget user does not match the request.",
+        )
+
+    budget_name = budget.budget_name.strip()
+    if not budget_name:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail="Budget name cannot be blank.",
+        )
+    if budget.end_date < budget.start_date:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail="End date must be on or after the start date.",
+        )
+
+    conn = get_connected()
+    cursor = conn.cursor(dictionary=True)
+    try:
+        cursor.execute(
+            "SELECT category_id FROM categories WHERE category_id = %s AND user_id = %s",
+            (budget.category_id, user_id),
+        )
+        if cursor.fetchone() is None:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Category not found for this user.",
+            )
+
+        cursor.execute(
+            """
+            UPDATE budgets
+            SET category_id = %s,
+                budget_name = %s,
+                budget_amount = %s,
+                start_date = %s,
+                end_date = %s
+            WHERE budget_id = %s AND user_id = %s
+            """,
+            (
+                budget.category_id,
+                budget_name,
+                budget.budget_amount,
+                budget.start_date,
+                budget.end_date,
+                budget_id,
+                user_id,
+            ),
+        )
+        if cursor.rowcount == 0:
+            cursor.execute(
+                "SELECT budget_id FROM budgets WHERE budget_id = %s AND user_id = %s",
+                (budget_id, user_id),
+            )
+            if cursor.fetchone() is None:
+                raise HTTPException(
+                    status_code=status.HTTP_404_NOT_FOUND,
+                    detail="Budget not found.",
+                )
+
+        conn.commit()
+        cursor.execute(
+            """
+            SELECT budget_id, user_id, category_id, budget_name, budget_amount,
+                   start_date, end_date, created_at
+            FROM budgets
+            WHERE budget_id = %s AND user_id = %s
+            """,
+            (budget_id, user_id),
+        )
+        updated_budget = cursor.fetchone()
+        if updated_budget is None:
+            raise HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail="Budget was saved but could not be loaded.",
+            )
+        return updated_budget
+    finally:
+        cursor.close()
+        conn.close()
+
+
+@app.delete("/budgets/{user_id}/{budget_id}", status_code=status.HTTP_204_NO_CONTENT)
+def deleteBudget(user_id: int, budget_id: int):
+    conn = get_connected()
+    cursor = conn.cursor()
+    try:
+        cursor.execute(
+            "DELETE FROM budgets WHERE budget_id = %s AND user_id = %s",
+            (budget_id, user_id),
+        )
+        if cursor.rowcount == 0:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Budget not found.",
+            )
+        conn.commit()
     finally:
         cursor.close()
         conn.close()
@@ -413,6 +519,169 @@ def transactionFilter(user_id: int,):
     finally:
           cursor.close()
           conn.close()
+
+@app.get("/transactionFilter/{user_id}/{transaction_type}")
+def transactionFilter(user_id: int,transaction_type: str,):
+    conn = get_connected()
+    cursor = conn.cursor(dictionary=True)
+    try:
+        cursor.execute(
+              """
+              SELECT transaction_type, amount, description,
+                     transaction_date, notes
+              FROM transactions
+              WHERE user_id = %s AND transaction_type = %s
+              """,
+              (user_id,transaction_type),
+          )
+        return cursor.fetchall()
+    finally:
+          cursor.close()
+          conn.close()
+
+@app.get("/transactionSearch/{user_id}")
+def searchTransactions(user_id: int, search_term: str = Query(min_length=1, max_length=100)):
+    normalized_search_term = search_term.strip()
+    if not normalized_search_term:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail="Search term cannot be blank.",
+        )
+
+    search_pattern = f"%{normalized_search_term}%"
+    conn = get_connected()
+    cursor = conn.cursor(dictionary=True)
+    try:
+        cursor.execute(
+            """
+            SELECT transaction_type, amount, description,
+                   transaction_date, notes
+            FROM transactions
+            WHERE user_id = %s
+              AND (
+                  description LIKE %s
+                  OR transaction_type LIKE %s
+                  OR COALESCE(notes, '') LIKE %s
+                  OR CAST(amount AS CHAR) LIKE %s
+                  OR CAST(transaction_date AS CHAR) LIKE %s
+              )
+            """,
+            (user_id, search_pattern, search_pattern, search_pattern, search_pattern, search_pattern),
+        )
+        return cursor.fetchall()
+    finally:
+        cursor.close()
+        conn.close()
+
+##for date asc and desc 
+@app.get("/transactionFilter/{user_id}/{isorder}/{order}")
+def transactionFilter(user_id: int,isorder: bool,order: str):
+    conn = get_connected()
+    cursor = conn.cursor(dictionary=True)
+    
+    if (isorder == True and order =="oldest"):
+        try:
+        
+            cursor.execute(
+              """
+              SELECT transaction_type, amount, description,
+                     transaction_date, notes
+              FROM transactions
+              WHERE user_id = %s 
+              ORDER by transaction_date ASC
+              """,
+              (user_id,),
+          )
+            return cursor.fetchall()
+        finally:
+          cursor.close()
+          conn.close()
+
+
+    elif (isorder == True and order =="newest"):
+            try:
+            
+                cursor.execute(
+                  """
+                  SELECT transaction_type, amount, description,
+                         transaction_date, notes
+                  FROM transactions
+                  WHERE user_id = %s 
+                  ORDER by transaction_date DESC
+                  """,
+                  (user_id,),
+              )
+                return cursor.fetchall()
+            finally:
+              cursor.close()
+              conn.close()
+    elif (isorder == True and order =="a-z"):
+            try:
+            
+                cursor.execute(
+                  """
+                  SELECT transaction_type, amount, description,
+                         transaction_date, notes
+                  FROM transactions
+                  WHERE user_id = %s 
+                  ORDER by description ASC
+                  """,
+                  (user_id,),
+              )
+                return cursor.fetchall()
+            finally:
+              cursor.close()
+              conn.close()
+    elif (isorder == True and order =="z-a"):
+            try:
+                cursor.execute(
+                    """
+                    SELECT transaction_type, amount, description,
+                           transaction_date, notes
+                    FROM transactions
+                    WHERE user_id = %s 
+                    ORDER by description DESC
+                    """,
+                    (user_id,),
+                )
+                return cursor.fetchall()
+            finally:
+                  cursor.close()
+                  conn.close()
+    elif (isorder == True and order =="highest"):
+            try:         
+                cursor.execute(
+                    """
+                    SELECT transaction_type, amount, description,
+                           transaction_date, notes
+                    FROM transactions
+                    WHERE user_id = %s 
+                    ORDER by amount DESC
+                    """,
+                    (user_id,),
+                )
+                return cursor.fetchall()
+            finally:
+                cursor.close()
+                conn.close()
+    elif (isorder == True and order =="lowest"):
+            try:
+            
+                cursor.execute(
+                    """
+                    SELECT transaction_type, amount, description,
+                           transaction_date, notes
+                    FROM transactions
+                    WHERE user_id = %s 
+                    ORDER by amount ASC
+                    """,
+                    (user_id,),
+                )
+                return cursor.fetchall()
+            finally:
+                cursor.close()
+                conn.close()
+    else: return "Invalid API"
 @app.get("/budget/{user_id}")
 def budget(user_id: int,):
     conn = get_connected()
@@ -420,7 +689,8 @@ def budget(user_id: int,):
     try:
         cursor.execute(
               """
-              SELECT budget_name, budget_amount, start_date,end_date,created_at
+              SELECT budget_id, category_id, budget_name, budget_amount,
+                     start_date, end_date, created_at
               FROM budgets
               WHERE user_id = %s
               """,
@@ -430,3 +700,6 @@ def budget(user_id: int,):
     finally:
           cursor.close()
           conn.close()
+@app.get("/.well-known/appspecific/com.chrome.devtools.json")
+async def chrome_devtools():
+    return Response(status_code=204)

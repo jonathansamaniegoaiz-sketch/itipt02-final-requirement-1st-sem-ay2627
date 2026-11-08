@@ -2,8 +2,9 @@
 
 .budgets-content { --background: #f7f8fc; }
 .budgets-shell { max-width: 1220px; margin: 0 auto; padding: 34px 28px 54px; color: var(--ink); }
-.page-heading, .list-heading, .form-actions { display: flex; align-items: center; justify-content: space-between; gap: 18px; }
+.page-heading, .form-actions { display: flex; align-items: center; justify-content: space-between; gap: 18px; }
 .eyebrow { margin: 0 0 7px; color: var(--brand); font-size: .68rem; font-weight: 800; letter-spacing: .14em; }
+.section-kicker { margin: 0 0 7px; color: var(--brand); font-size: .66rem; font-weight: 800; letter-spacing: .1em; }
 h1 { margin: 0; font-size: clamp(1.8rem, 4vw, 2.35rem); font-weight: 750; }
 .page-subtitle { margin: 8px 0 0; color: var(--muted); }
 .add-button { --background: var(--brand); --border-radius: 11px; --box-shadow: 0 8px 18px rgba(86,83,216,.22); font-weight: 700; }
@@ -14,13 +15,32 @@ h1 { margin: 0; font-size: clamp(1.8rem, 4vw, 2.35rem); font-weight: 750; }
 .summary-card strong { display: block; font-size: 1.18rem; }
 .summary-primary .summary-icon { color: #4b49ca; background: #ececff; } .summary-green .summary-icon { color: #168b69; background: #e3f8f0; } .summary-purple .summary-icon { color: #a04bc5; background: #f5e7fb; }
 .budget-form-card, .budget-list-card { margin: 0 0 20px; border-radius: 17px; box-shadow: 0 5px 20px rgba(38,48,80,.05); }
-ion-card-header { padding-bottom: 8px; } ion-card-title { font-size: 1.05rem; font-weight: 750; } ion-card-header p, .list-heading p { margin: 5px 0 0; color: var(--muted); font-size: .8rem; }
+ion-card-header { padding-bottom: 8px; } ion-card-title { font-size: 1.05rem; font-weight: 750; } ion-card-header p { margin: 5px 0 0; color: var(--muted); font-size: .8rem; }
 .form-grid { display: grid; grid-template-columns: 1.3fr 1fr 1fr 1fr 1fr; gap: 14px; } label span { display: block; margin: 0 0 7px; color: #59647a; font-size: .78rem; font-weight: 650; } label ion-input { --background: #f7f8fc; --border-color: var(--line); --border-radius: 9px; --padding-start: 12px; border: 1px solid var(--line); border-radius: 9px; }
 .category-select { width: 100%; min-height: 42px; padding: 0 12px; border: 1px solid var(--line); border-radius: 9px; background: #f7f8fc; color: var(--ink); }
+.period-select { min-height: 40px; padding: 0 12px; border: 1px solid var(--line); border-radius: 9px; background: #f7f8fc; color: var(--ink); }
 .error-message { margin: 16px 0 0; color: #b42318; font-size: .9rem; }
 .form-hint { margin: 12px 0 0; color: var(--muted); font-size: .82rem; }
 .form-actions { justify-content: flex-end; margin-top: 18px; } .form-actions ion-button { margin: 0; }
-.list-heading ion-searchbar { max-width: 240px; --background: #f7f8fc; --box-shadow: none; --border-radius: 9px; padding: 0; }
-.table-wrap { overflow-x: auto; padding-top: 5px; }.budget-table { min-width: 900px; }.table-row { display: grid; grid-template-columns: 1.25fr 1fr 1fr 1fr 1fr 1.25fr; align-items: center; gap: 16px; padding: 17px 8px; border-bottom: 1px solid var(--line); font-size: .86rem; }.table-header { padding-top: 8px; color: var(--muted); font-size: .7rem; font-weight: 750; text-transform: uppercase; letter-spacing: .05em; }.amount { color: var(--brand); font-weight: 750; }.muted { color: var(--muted); }.empty-state { padding: 42px 10px; color: var(--muted); text-align: center; }
-@media (max-width: 760px) { .budgets-shell { padding: 25px 16px 40px; } .page-heading { align-items: flex-start; flex-direction: column; } .summary-grid { grid-template-columns: 1fr; } .form-grid { grid-template-columns: 1fr 1fr; } .list-heading { align-items: flex-start; flex-direction: column; } .list-heading ion-searchbar { width: 100%; max-width: none; } }
+.breakdown-header { display: grid; gap: 18px; padding: 22px 24px 12px; }
+.breakdown-title { display: flex; align-items: center; justify-content: space-between; gap: 16px; }
+.budget-count { padding: 6px 10px; border-radius: 99px; background: #ececff; color: var(--brand); font-size: .74rem; font-weight: 750; white-space: nowrap; }
+.budget-controls { display: flex; align-items: center; gap: 12px; }
+.budget-controls ion-searchbar { max-width: 360px; --background: #f7f8fc; --box-shadow: none; --border-radius: 10px; padding: 0; }
+.period-control { display: flex; align-items: center; gap: 9px; color: var(--muted); font-size: .78rem; font-weight: 650; white-space: nowrap; }
+.period-select { min-width: 142px; }
+.budget-list-card ion-card-content { padding: 12px 24px 24px; }
+.empty-state { padding: 42px 10px; color: var(--muted); text-align: center; }
+@media (max-width: 760px) {
+  .budgets-shell { padding: 25px 16px 40px; }
+  .page-heading { align-items: flex-start; flex-direction: column; }
+  .summary-grid { grid-template-columns: 1fr; }
+  .form-grid { grid-template-columns: 1fr 1fr; }
+  .breakdown-header { padding: 20px 16px 10px; }
+  .breakdown-title { align-items: flex-start; }
+  .budget-controls { align-items: stretch; flex-direction: column; }
+  .budget-controls ion-searchbar { width: 100%; max-width: none; }
+  .period-control { justify-content: space-between; }
+  .budget-list-card ion-card-content { padding: 10px 16px 18px; }
+}
 @media (max-width: 430px) { .form-grid { grid-template-columns: 1fr; } }

@@ -166,9 +166,20 @@
 .monthly-budget-heading {
   display: flex;
   justify-content: space-between;
+  align-items: flex-start;
   gap: 12px;
   margin-bottom: 8px;
   font-size: 0.875rem;
+}
+
+.monthly-budget-heading > div {
+  display: grid;
+  gap: 4px;
+}
+
+.monthly-budget-heading small {
+  color: var(--text-muted);
+  font-size: 0.75rem;
 }
 
 .monthly-budget-heading span {

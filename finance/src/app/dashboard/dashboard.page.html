@@ -86,15 +86,22 @@
 
         <ion-card class="monthly-budgets-card">
           <ion-card-header class="dashboard-card-header">
-            <ion-card-title>This Month's Budget</ion-card-title>
+            <ion-card-title>{{ budgetCardTitle }}</ion-card-title>
             <ion-button class="view-all-button" fill="solid" size="small" routerLink="/finance/budgets">
               View All
             </ion-button>
           </ion-card-header>
           <ion-card-content>
-            <div class="monthly-budget" *ngFor="let budget of thisMonthBudgets">
+            <p class="empty-budget" *ngIf="budgetLoading && dashboardBudgets.length === 0">Loading budgets...</p>
+            <p class="empty-budget" role="alert" *ngIf="budgetLoadError">
+              Could not refresh budgets: {{ budgetLoadError }}
+            </p>
+            <div class="monthly-budget" *ngFor="let budget of dashboardBudgets">
               <div class="monthly-budget-heading">
-                <strong>{{ budget.budget_name }}</strong>
+                <div>
+                  <strong>{{ budget.budget_name }}</strong>
+                  <small>{{ budget.start_date }} – {{ budget.end_date }}</small>
+                </div>
                 <span>
                   ₱{{ getBudgetSpent(budget) | number:'1.0-2' }} / ₱{{ budget.budget_amount | number:'1.0-2' }}
                 </span>
@@ -104,7 +111,12 @@
                 [color]="getBudgetProgress(budget) >= 1 ? 'danger' : 'primary'"
               ></ion-progress-bar>
             </div>
-            <p class="empty-budget" *ngIf="thisMonthBudgets.length === 0">No budgets set for this month.</p>
+            <p
+              class="empty-budget"
+              *ngIf="!budgetLoading && !budgetLoadError && dashboardBudgets.length === 0"
+            >
+              No budgets found.
+            </p>
           </ion-card-content>
         </ion-card>
       </div>

@@ -97,3 +97,27 @@
   min-height: 0;
   overflow: hidden;
 }
+
+@media (max-width: 760px) {
+  .dashboard-container {
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-areas: 'main';
+  }
+
+  .sidebar {
+    display: none;
+  }
+
+  .main-content {
+    width: 100%;
+    min-width: 0;
+  }
+
+  .header {
+    padding: 14px 16px;
+  }
+
+  .header h1 {
+    font-size: 1rem;
+  }
+}
